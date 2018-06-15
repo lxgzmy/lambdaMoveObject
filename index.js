@@ -49,11 +49,19 @@ exports.handler = (event, context, callback) => {
         if (err) {
             console.log(err, err.stack); // an error occurred
         } else {
+            //list all the object in the source bucket
+            //fetch the latest object updated just now
+            //take the object name
             sourceObject = new LINQ(data.Contents)
                 .OrderByDescending(function (object) { return object.LastModified; })
                 .Select(function (object) { return object.Key; })
                 .ToArray()[0];
+
             console.log(sourceObject);
+
+            //copy the object to production account
+            //before doing this, enable the lambda role 
+            //can access the production bucket policy
             s3.copyObject({
                 CopySource: srcBucket + '/' + sourceObject,
                 Bucket: destBucket,
@@ -63,12 +71,15 @@ exports.handler = (event, context, callback) => {
                 if (copyErr) {
                     console.log("Error: " + copyErr);
                 } else {
+
+                    //don't forget to call put job success for pipeline
+                    //otherwise the pipleline will fail.
                     putJobSuccess("Tests passed.");
+
                     console.log('Copied OK');
                     callback(null, 'All done!');
                 }
             });
-
         }
     });
 };
