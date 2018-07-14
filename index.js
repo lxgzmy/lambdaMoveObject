@@ -2,14 +2,14 @@
 const aws = require('aws-sdk');
 var LINQ = require("node-linq").LINQ;
 // Construct the AWS S3 Object - 
-http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#constructor-property
-var s3 = new aws.S3({
-    apiVersion: '2006-03-01'
-});
+http: //docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#constructor-property
+    var s3 = new aws.S3({
+        apiVersion: '2006-03-01'
+    });
 
 // Define 2 new variables for the source and destination buckets
-var srcBucket = "/serverless-cicd-lxgzmy";
-var destBucket = "lxgzmy-production-pipeline1";
+var srcBucket = "cashrewards.serverless.build.artifact";
+var destBucket = "cashrewards.serverless.build.artifact.production";
 var sourceObject = "";
 
 
@@ -20,12 +20,13 @@ exports.handler = (event, context, callback) => {
     var codepipeline = new aws.CodePipeline();
     console.log(codepipeline);
     console.log(event);
+
     // Retrieve the Job ID from the Lambda action
     var jobId = event["CodePipeline.job"].id;
-
     // Retrieve the value of UserParameters from the Lambda action configuration in AWS CodePipeline, in this case a URL which will be
+    var outputKey = event["CodePipeline.job"].data.actionConfiguration.configuration.UserParameters;
     // health checked by this function.
-    var url = event["CodePipeline.job"].data.actionConfiguration.configuration.UserParameters;
+    var inputObject = event["CodePipeline.job"].data.inputArtifacts[0];
 
     // Notify AWS CodePipeline of a successful job
     var putJobSuccess = function (message) {
@@ -43,43 +44,22 @@ exports.handler = (event, context, callback) => {
 
     //Copy the current object to the destination bucket
     var params = {
-        Bucket: "serverless-cicd-lxgzmy"
+        CopySource: inputObject.location.s3Location.bucketName + '/' + inputObject.location.s3Location.objectKey,
+        Bucket: destBucket,
+        ACL: "bucket-owner-full-control",
+        Key: outputKey
     };
-    s3.listObjects(params, function (err, data) {
-        if (err) {
-            console.log(err, err.stack); // an error occurred
+    s3.copyObject(params, function (copyErr, copyData) {
+        if (copyErr) {
+            console.log("Error: " + copyErr);
         } else {
-            //list all the object in the source bucket
-            //fetch the latest object updated just now
-            //take the object name
-            sourceObject = new LINQ(data.Contents)
-                .OrderByDescending(function (object) { return object.LastModified; })
-                .Select(function (object) { return object.Key; })
-                .ToArray()[0];
 
-            console.log(sourceObject);
+            //don't forget to call put job success for pipeline
+            //otherwise the pipleline will fail.
+            putJobSuccess("Tests passed.");
 
-            //copy the object to production account
-            //before doing this, enable the lambda role 
-            //can access the production bucket policy
-            s3.copyObject({
-                CopySource: srcBucket + '/' + sourceObject,
-                Bucket: destBucket,
-                ACL: "bucket-owner-full-control",
-                Key: "b32630290d2cc76b98b9000e442153a6.zip"
-            }, function (copyErr, copyData) {
-                if (copyErr) {
-                    console.log("Error: " + copyErr);
-                } else {
-
-                    //don't forget to call put job success for pipeline
-                    //otherwise the pipleline will fail.
-                    putJobSuccess("Tests passed.");
-
-                    console.log('Copied OK');
-                    callback(null, 'All done!');
-                }
-            });
+            console.log('Copied OK');
+            callback(null, 'All done!');
         }
     });
 };
