@@ -8,10 +8,7 @@ http: //docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#constructor-prop
     });
 
 // Define 2 new variables for the source and destination buckets
-var srcBucket = "cashrewards.serverless.build.artifact";
-var destBucket = "cashrewards.serverless.build.artifact.production";
-var sourceObject = "";
-
+var destBucket = process.env.Dest_S3_Bucket; //"cashrewards.serverless.build.artifact.production";
 
 
 //Main function
