@@ -40,23 +40,35 @@ exports.handler = (event, context, callback) => {
     };
 
     //Copy the current object to the destination bucket
-    var params = {
-        CopySource: inputObject.location.s3Location.bucketName + '/' + inputObject.location.s3Location.objectKey,
-        Bucket: destBucket,
-        ACL: "bucket-owner-full-control",
-        Key: outputKey
-    };
-    s3.copyObject(params, function (copyErr, copyData) {
-        if (copyErr) {
-            console.log("Error: " + copyErr);
-        } else {
+    s3.getObject({
+            Bucket: inputObject.location.s3Location.bucketName,
+            Key: inputObject.location.s3Location.objectKey
+        },
+        function (error, data) {
+            if (error != null) {
+                console.log("Failed to retrieve an object: " + error);
+            } else {
+                // do something with data.Body
+                var params = {
+                    Bucket: destBucket,
+                    ACL: "bucket-owner-full-control",
+                    Body: data.Body,
+                    Key: outputKey
+                };
+                s3.putObject(params, function (copyErr, copyData) {
+                    if (copyErr) {
+                        console.log("Error: " + copyErr);
+                    } else {
 
-            //don't forget to call put job success for pipeline
-            //otherwise the pipleline will fail.
-            putJobSuccess("Tests passed.");
+                        //don't forget to call put job success for pipeline
+                        //otherwise the pipleline will fail.
+                        putJobSuccess("Tests passed.");
 
-            console.log('Copied OK');
-            callback(null, 'All done!');
+                        console.log('Copied OK');
+                        callback(null, 'All done!');
+                    }
+                });
+            }
         }
-    });
+    );
 };
