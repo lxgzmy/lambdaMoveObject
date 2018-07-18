@@ -1,11 +1,10 @@
 // Load the AWS SDK
 const aws = require('aws-sdk');
 var LINQ = require("node-linq").LINQ;
-// Construct the AWS S3 Object - 
-http: //docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#constructor-property
-    var s3 = new aws.S3({
-        apiVersion: '2006-03-01'
-    });
+// Construct the AWS S3 Object - http: //docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#constructor-property
+var s3 = new aws.S3({
+    apiVersion: '2006-03-01'
+});
 
 // Define 2 new variables for the source and destination buckets
 var destBucket = process.env.Dest_S3_Bucket; //"cashrewards.serverless.build.artifact.production";
